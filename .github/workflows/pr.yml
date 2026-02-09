@@ -45,6 +45,7 @@ jobs:
         with:
           version: latest
           skip-cache: true
+          args: --timeout=5m -v
       - run: go test -race -coverprofile=coverage.out ./internal/... ./pkg/...
       - run: go test -v ./tests/integration/...
       - run: go tool cover -func=coverage.out
