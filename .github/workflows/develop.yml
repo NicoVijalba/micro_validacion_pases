@@ -1,8 +1,8 @@
-name: main-delivery
+name: develop-delivery
 
 on:
   push:
-    branches: [ main ]
+    branches: [ develop ]
   workflow_dispatch:
 
 permissions:
@@ -40,7 +40,7 @@ jobs:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=sha
-            type=raw,value=latest
+            type=raw,value=develop
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -48,26 +48,9 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
       - uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: ghcr.io/${{ github.repository }}:latest
+          image-ref: ghcr.io/${{ github.repository }}:develop
           format: sarif
           output: trivy-results.sarif
       - uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy-results.sarif
-
-  deploy:
-    needs: build-scan-push
-    runs-on: ubuntu-latest
-    environment: production
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            cd /opt/validacion-pases
-            export IMAGE=ghcr.io/${{ github.repository }}:latest
-            docker compose -f docker-compose.prod.yml pull app
-            docker compose -f docker-compose.prod.yml up -d app
