@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,10 +18,16 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		slog.Error("application failed", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("config load failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("config load failed: %w", err)
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel}))
@@ -29,8 +36,7 @@ func main() {
 	ctx := context.Background()
 	shutdownTelemetry, err := observability.InitTelemetry(ctx, cfg)
 	if err != nil {
-		logger.Error("telemetry initialization failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("telemetry initialization failed: %w", err)
 	}
 	defer func() {
 		if err := shutdownTelemetry(context.Background()); err != nil {
@@ -40,15 +46,13 @@ func main() {
 
 	dbConn, err := db.NewMySQL(cfg)
 	if err != nil {
-		logger.Error("database connection failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("database connection failed: %w", err)
 	}
 	defer closeDB(logger, dbConn)
 
 	handler, err := app.New(ctx, cfg, dbConn, logger)
 	if err != nil {
-		logger.Error("app initialization failed", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("app initialization failed: %w", err)
 	}
 
 	srv := &http.Server{
@@ -64,11 +68,11 @@ func main() {
 		logger.Info("api server started", "addr", cfg.HTTPAddr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("server crashed", "error", err)
-			os.Exit(1)
 		}
 	}()
 
 	waitForShutdown(logger, srv, cfg)
+	return nil
 }
 
 func waitForShutdown(logger *slog.Logger, srv *http.Server, cfg config.Config) {
