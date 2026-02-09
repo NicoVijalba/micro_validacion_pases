@@ -15,7 +15,11 @@ func TestInsertSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			t.Errorf("failed to close db: %v", cerr)
+		}
+	}()
 
 	repo := NewRecordRepository(db)
 	now := time.Now().UTC()
@@ -52,6 +56,7 @@ func TestInsertSuccess(t *testing.T) {
 		rec.UsuarioFirma,
 		rec.CreatedAt,
 	).WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectClose()
 
 	_, err = repo.Insert(context.Background(), rec)
 	if err != nil {

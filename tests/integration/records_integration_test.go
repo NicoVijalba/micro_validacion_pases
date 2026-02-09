@@ -11,6 +11,7 @@ import (
 	"github.com/example/validacion-pases/internal/domain"
 	"github.com/example/validacion-pases/internal/repository/mysql"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/testcontainers/testcontainers-go"
 	mysqltc "github.com/testcontainers/testcontainers-go/modules/mysql"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -24,7 +25,7 @@ func TestInsertRecordIntegration(t *testing.T) {
 		mysqltc.WithUsername("app"),
 		mysqltc.WithPassword("app"),
 		mysqltc.WithScripts(filepath.Join("..", "..", "migrations", "000001_init.up.sql")),
-		mysqltc.WithWaitStrategy(wait.ForLog("port: 3306  MySQL Community Server").WithStartupTimeout(2*time.Minute)),
+		testcontainers.WithWaitStrategy(wait.ForLog("port: 3306  MySQL Community Server").WithStartupTimeout(2*time.Minute)),
 	)
 	if err != nil {
 		t.Fatalf("mysql container failed: %v", err)
@@ -38,7 +39,11 @@ func TestInsertRecordIntegration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			t.Errorf("failed to close db: %v", cerr)
+		}
+	}()
 
 	repo := mysql.NewRecordRepository(db)
 	now := time.Now().UTC()

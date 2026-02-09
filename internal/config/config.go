@@ -1,3 +1,4 @@
+// Package config loads and validates runtime configuration from environment variables.
 package config
 
 import (
@@ -10,6 +11,7 @@ import (
 	"time"
 )
 
+// Config contains application settings loaded from the environment.
 type Config struct {
 	ServiceName       string
 	Environment       string
@@ -49,6 +51,7 @@ type Config struct {
 	OTelInsecure bool
 }
 
+// Load builds the application configuration from environment variables and validates core constraints.
 func Load() (Config, error) {
 	cfg := Config{
 		ServiceName:       getEnv("SERVICE_NAME", "validacion-pases"),
