@@ -15,7 +15,11 @@ func TestInsertSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			t.Errorf("failed to close db: %v", cerr)
+		}
+	}()
 
 	repo := NewRecordRepository(db)
 	now := time.Now().UTC()

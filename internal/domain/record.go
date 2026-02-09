@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Record represents a persisted pass validation record.
 type Record struct {
 	ID                  int64
 	Emision             time.Time
@@ -23,6 +24,7 @@ type Record struct {
 	CreatedAt           time.Time
 }
 
+// CreateRecordInput contains the required fields to create a new record.
 type CreateRecordInput struct {
 	Nave            string
 	Viaje           string
@@ -38,6 +40,7 @@ type CreateRecordInput struct {
 	UsuarioFirma    string
 }
 
+// RecordRepository defines persistence operations for records.
 type RecordRepository interface {
 	Insert(ctx context.Context, record Record) (int64, error)
 }
