@@ -15,6 +15,7 @@ func TestInsertSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	mock.ExpectClose()
 	defer func() {
 		if cerr := db.Close(); cerr != nil {
 			t.Errorf("failed to close db: %v", cerr)
