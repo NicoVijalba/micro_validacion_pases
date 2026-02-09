@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   dependency-review:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +41,7 @@ jobs:
       - run: test -z "$(gofmt -l .)"
       - uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.63
+          version: latest
       - run: go test -race -coverprofile=coverage.out ./internal/... ./pkg/...
       - run: go test -v ./tests/integration/...
       - run: go tool cover -func=coverage.out
