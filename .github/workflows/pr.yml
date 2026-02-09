@@ -1,0 +1,52 @@
+name: pr-checks
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+
+  test-lint:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: validacion_pases
+          MYSQL_USER: app
+          MYSQL_PASSWORD: app
+          MYSQL_ROOT_PASSWORD: root
+        ports: [ "3306:3306" ]
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uapp -papp"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go mod download
+      - run: test -z "$(gofmt -l .)"
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.63
+      - run: go test -race -coverprofile=coverage.out ./internal/... ./pkg/...
+      - run: go test -v ./tests/integration/...
+      - run: go tool cover -func=coverage.out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+      - run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - run: govulncheck ./...

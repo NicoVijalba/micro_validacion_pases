@@ -1,0 +1,196 @@
+openapi: 3.0.3
+info:
+  title: Validacion Pases API
+  version: 1.1.0
+servers:
+  - url: https://api.example.com
+paths:
+  /healthz:
+    get:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: OK
+  /readyz:
+    get:
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Ready
+        '503':
+          description: Dependency unavailable
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /v1/token:
+    post:
+      summary: Issue access token with username/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '200':
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+  /v1/records:
+    post:
+      security:
+        - bearerAuth: []
+      summary: Create record with computed business fields
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecordRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateRecordResponse'
+        '400':
+          description: Validation error
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          description: Unauthorized
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Conflict
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    TokenRequest:
+      type: object
+      additionalProperties: false
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          maxLength: 100
+        password:
+          type: string
+          maxLength: 200
+    TokenResponse:
+      type: object
+      required: [access_token, token_type, expires_at]
+      properties:
+        access_token:
+          type: string
+        token_type:
+          type: string
+          example: Bearer
+        expires_at:
+          type: string
+          format: date-time
+    CreateRecordRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - nave
+        - viaje
+        - cliente
+        - booking
+        - rama
+        - fecha_real
+        - puerto_descargue
+      properties:
+        nave:
+          type: string
+          maxLength: 150
+        viaje:
+          type: string
+          maxLength: 100
+        cliente:
+          type: string
+          maxLength: 200
+        booking:
+          type: string
+          maxLength: 100
+        rama:
+          type: string
+          enum: [internacional, nacional]
+        contenedor_serie:
+          type: string
+          maxLength: 100
+          description: Required when rama=internacional
+        codigo_iso:
+          type: string
+          maxLength: 20
+          description: Required when rama=nacional
+        fecha_real:
+          type: string
+          example: '2026-02-09'
+        dias_libre:
+          type: integer
+          minimum: 0
+          maximum: 365
+          description: Defaults to 0 when omitted
+        transportista:
+          type: string
+          maxLength: 200
+          description: Required when rama=nacional
+        puerto_descargue:
+          type: string
+          maxLength: 150
+    CreateRecordResponse:
+      type: object
+      required: [id, emision, contenedor, libre_retencion_hasta, titulo_terminal, usuario_firma]
+      properties:
+        id:
+          type: integer
+          format: int64
+        emision:
+          type: string
+          format: date-time
+        contenedor:
+          type: string
+        libre_retencion_hasta:
+          type: string
+          example: '2026-02-12'
+        titulo_terminal:
+          type: string
+        usuario_firma:
+          type: string
+    Problem:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string

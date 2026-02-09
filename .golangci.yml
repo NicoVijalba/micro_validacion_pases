@@ -1,0 +1,16 @@
+run:
+  timeout: 5m
+  tests: true
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - revive
+    - ineffassign
+    - errcheck
+    - gosimple
+    - bodyclose
+    - sqlclosecheck
+    - gocritic
+issues:
+  exclude-use-default: false
