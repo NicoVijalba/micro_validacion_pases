@@ -6,7 +6,7 @@ services:
       - .env
     volumes:
       - ./migrations:/migrations:ro
-    command: ["-path=/migrations", "-database", "${MIGRATE_DATABASE_URL}", "up"]
+    command: ["-path=/migrations", "-database", "${MIGRATE_DATABASE_URL:?MIGRATE_DATABASE_URL is required}", "up"]
     networks:
       - backend
 
