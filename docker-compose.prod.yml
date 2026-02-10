@@ -1,11 +1,27 @@
 services:
+  migrate:
+    image: migrate/migrate:v4.17.1
+    restart: "no"
+    env_file:
+      - .env
+    volumes:
+      - ./migrations:/migrations:ro
+    command: ["-path=/migrations", "-database", "${MIGRATE_DATABASE_URL}", "up"]
+    networks:
+      - backend
+
   app:
     image: ghcr.io/ORG/validacion-pases:latest
     restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
     ports:
       - "127.0.0.1:8080:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     read_only: true
     cap_drop: ["ALL"]
     security_opt:
