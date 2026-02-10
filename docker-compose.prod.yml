@@ -13,7 +13,8 @@ services:
       - backend
 
   app:
-    image: ghcr.io/nicovijalba/micro_validacion_pases:latest
+    image: ${IMAGE:-ghcr.io/nicovijalba/micro_validacion_pases:latest}
+    container_name: micro_validacion_pases
     restart: unless-stopped
     env_file:
       - .env
