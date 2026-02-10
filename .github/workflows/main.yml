@@ -68,7 +68,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd /opt/validacion-pases
+            cd /home/admin/public_html/micro_validacion_pases
             export IMAGE=ghcr.io/${{ github.repository }}:latest
             docker compose -f docker-compose.prod.yml pull app
             docker compose -f docker-compose.prod.yml up -d app

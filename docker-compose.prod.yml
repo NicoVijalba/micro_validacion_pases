@@ -4,6 +4,8 @@ services:
     restart: "no"
     env_file:
       - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./migrations:/migrations:ro
     command: ["-path=/migrations", "-database", "${MIGRATE_DATABASE_URL:?MIGRATE_DATABASE_URL is required}", "up"]
