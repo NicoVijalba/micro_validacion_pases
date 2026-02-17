@@ -82,6 +82,33 @@ func TestCreateSuccessNacional(t *testing.T) {
 	}
 }
 
+func TestCreateSuccessWithoutRamaInfersInternacional(t *testing.T) {
+	svc := NewRecordService(mockRepo{insertFn: func(_ context.Context, r domain.Record) (int64, error) {
+		if r.Rama != "internacional" {
+			t.Fatalf("expected inferred rama internacional, got %s", r.Rama)
+		}
+		return 2, nil
+	}})
+
+	fechaReal, _ := time.Parse("2006-01-02", "2026-02-09")
+	_, rec, err := svc.Create(context.Background(), domain.CreateRecordInput{
+		Nave:            "NAVE TEST",
+		Viaje:           "VJ001",
+		Cliente:         "CLIENTE TEST",
+		Booking:         "BK001",
+		ContenedorSerie: "ABCU1234567",
+		FechaReal:       fechaReal,
+		PuertoDescargue: "Balboa",
+		UsuarioFirma:    "user-1",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if rec.Contenedor != "ABCU1234567" {
+		t.Fatalf("unexpected contenedor: %s", rec.Contenedor)
+	}
+}
+
 func TestCreateInvalidInput(t *testing.T) {
 	svc := NewRecordService(mockRepo{insertFn: func(_ context.Context, _ domain.Record) (int64, error) { return 1, nil }})
 	_, _, err := svc.Create(context.Background(), domain.CreateRecordInput{Rama: "internacional", UsuarioFirma: "x"})

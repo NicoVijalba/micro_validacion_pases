@@ -46,3 +46,18 @@ func TestCreateRecordBadPayload(t *testing.T) {
 		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }
+
+func TestCreateRecordAcceptsLegacyPayloadShape(t *testing.T) {
+	h := NewRecordHandler(usecase.NewRecordService(testRepo{}))
+	body := []byte(`{"emision":"2026-02-17 09:41:45","nave":"NYK DENEB","viaje":"072E","cliente":"CAPITAL PACIFICO, S.A.","booking":"YMLUL160382911","contenedor":"YMLU5374938","puerto_descargue":"RODMAN","libre_retencion_hasta":"2021-03-06","dias_libre":0,"transportista":"GLOBERUNNERS, INC","titulo_terminal":"PANAMA PORTS COMPANY (RODMAN)","usuario_firma":"Admin"}`)
+	r := httptest.NewRequest(http.MethodPost, "/v1/records", bytes.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	r = r.WithContext(middleware.WithClaims(r.Context(), &auth.Claims{Subject: "user-1"}))
+
+	w := httptest.NewRecorder()
+	h.Create(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}

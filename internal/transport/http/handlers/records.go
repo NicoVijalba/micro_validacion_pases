@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -21,17 +22,22 @@ type RecordHandler struct {
 }
 
 type createRecordRequest struct {
-	Nave            string `json:"nave" validate:"required,max=150"`
-	Viaje           string `json:"viaje" validate:"required,max=100"`
-	Cliente         string `json:"cliente" validate:"required,max=200"`
-	Booking         string `json:"booking" validate:"required,max=100"`
-	Rama            string `json:"rama" validate:"required,oneof=internacional nacional"`
-	ContenedorSerie string `json:"contenedor_serie" validate:"max=100"`
-	CodigoISO       string `json:"codigo_iso" validate:"max=20"`
-	FechaReal       string `json:"fecha_real" validate:"required,datetime=2006-01-02"`
-	DiasLibre       *int   `json:"dias_libre" validate:"omitempty,gte=0,lte=365"`
-	Transportista   string `json:"transportista" validate:"max=200"`
-	PuertoDescargue string `json:"puerto_descargue" validate:"required,max=150"`
+	Nave                string `json:"nave" validate:"required,max=150"`
+	Viaje               string `json:"viaje" validate:"required,max=100"`
+	Cliente             string `json:"cliente" validate:"required,max=200"`
+	Booking             string `json:"booking" validate:"required,max=100"`
+	Rama                string `json:"rama" validate:"omitempty,oneof=internacional nacional"`
+	ContenedorSerie     string `json:"contenedor_serie" validate:"max=100"`
+	Contenedor          string `json:"contenedor" validate:"max=100"`
+	CodigoISO           string `json:"codigo_iso" validate:"max=20"`
+	FechaReal           string `json:"fecha_real" validate:"omitempty,datetime=2006-01-02"`
+	LibreRetencionHasta string `json:"libre_retencion_hasta" validate:"omitempty,datetime=2006-01-02"`
+	DiasLibre           *int   `json:"dias_libre" validate:"omitempty,gte=0,lte=365"`
+	Transportista       string `json:"transportista" validate:"max=200"`
+	PuertoDescargue     string `json:"puerto_descargue" validate:"required,max=150"`
+	Emision             string `json:"emision" validate:"omitempty,max=50"`
+	TituloTerminal      string `json:"titulo_terminal" validate:"omitempty,max=200"`
+	UsuarioFirma        string `json:"usuario_firma" validate:"omitempty,max=200"`
 }
 
 type createRecordResponse struct {
@@ -69,15 +75,37 @@ func (h *RecordHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.TrimSpace(req.ContenedorSerie) == "" {
+		req.ContenedorSerie = strings.TrimSpace(req.Contenedor)
+	}
+
 	claims, err := middleware.ClaimsFromContext(r.Context())
 	if err != nil {
 		problem.Write(w, r, problem.Unauthorized("auth claims missing"))
 		return
 	}
 
-	fechaReal, err := time.Parse("2006-01-02", req.FechaReal)
-	if err != nil {
-		problem.Write(w, r, problem.BadRequest("fecha_real must use YYYY-MM-DD"))
+	var fechaReal time.Time
+	switch {
+	case strings.TrimSpace(req.FechaReal) != "":
+		fechaReal, err = time.Parse("2006-01-02", req.FechaReal)
+		if err != nil {
+			problem.Write(w, r, problem.BadRequest("fecha_real must use YYYY-MM-DD"))
+			return
+		}
+	case strings.TrimSpace(req.LibreRetencionHasta) != "":
+		lrh, parseErr := time.Parse("2006-01-02", req.LibreRetencionHasta)
+		if parseErr != nil {
+			problem.Write(w, r, problem.BadRequest("libre_retencion_hasta must use YYYY-MM-DD"))
+			return
+		}
+		diasLibre := 0
+		if req.DiasLibre != nil {
+			diasLibre = *req.DiasLibre
+		}
+		fechaReal = lrh.AddDate(0, 0, -diasLibre)
+	default:
+		problem.Write(w, r, problem.BadRequest("fecha_real is required"))
 		return
 	}
 

@@ -33,6 +33,7 @@ Ver `.env.example`.
 - `CONTENEDOR`:
   - `rama=internacional` -> `contenedor_serie`.
   - `rama=nacional` -> `1 X <codigo_iso>`.
+  - si `rama` no viene, el backend la infiere (`contenedor_serie` => internacional, `codigo_iso+transportista` => nacional).
 - `LIBRE_DE_RETENCION_HASTA`: `fecha_real + dias_libre`.
 - `dias_libre`: si no viene, `0`.
 - `TRANSPORTISTA`: requerido solo para `rama=nacional`.
@@ -79,6 +80,28 @@ curl -X POST http://localhost:8080/v1/records \
     "fecha_real":"2026-02-09",
     "dias_libre":2,
     "puerto_descargue":"Balboa"
+  }'
+```
+
+## Ejemplo: guardar record (payload legado compatible)
+```bash
+curl -X POST http://localhost:8080/v1/records \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "emision":"2026-02-17 09:41:45",
+    "nave":"NYK DENEB",
+    "viaje":"072E",
+    "cliente":"CAPITAL PACIFICO, S.A.",
+    "booking":"YMLUL160382911",
+    "rama":"internacional",
+    "contenedor":"YMLU5374938",
+    "puerto_descargue":"RODMAN",
+    "libre_retencion_hasta":"2021-03-06",
+    "dias_libre":0,
+    "transportista":"GLOBERUNNERS, INC",
+    "titulo_terminal":"PANAMA PORTS COMPANY (RODMAN)",
+    "usuario_firma":"Admin"
   }'
 ```
 

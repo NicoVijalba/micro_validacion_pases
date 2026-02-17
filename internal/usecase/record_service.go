@@ -37,7 +37,7 @@ func (s *RecordService) Create(ctx context.Context, in domain.CreateRecordInput)
 		diasLibre = *in.DiasLibre
 	}
 
-	contenedor, transportista, err := resolveContenedorData(in.Rama, in.ContenedorSerie, in.CodigoISO, in.Transportista)
+	rama, contenedor, transportista, err := resolveContenedorData(in.Rama, in.ContenedorSerie, in.CodigoISO, in.Transportista)
 	if err != nil {
 		return 0, domain.Record{}, domain.ErrInvalidInput
 	}
@@ -48,7 +48,7 @@ func (s *RecordService) Create(ctx context.Context, in domain.CreateRecordInput)
 		Viaje:               strings.TrimSpace(in.Viaje),
 		Cliente:             strings.TrimSpace(in.Cliente),
 		Booking:             strings.TrimSpace(in.Booking),
-		Rama:                strings.ToLower(strings.TrimSpace(in.Rama)),
+		Rama:                rama,
 		Contenedor:          contenedor,
 		PuertoDescargue:     strings.TrimSpace(in.PuertoDescargue),
 		LibreRetencionHasta: in.FechaReal.AddDate(0, 0, diasLibre),
@@ -71,24 +71,32 @@ func (s *RecordService) Create(ctx context.Context, in domain.CreateRecordInput)
 	return id, rec, nil
 }
 
-func resolveContenedorData(rama, contenedorSerie, codigoISO, transportista string) (string, string, error) {
+func resolveContenedorData(rama, contenedorSerie, codigoISO, transportista string) (string, string, string, error) {
 	normalizedRama := strings.ToLower(strings.TrimSpace(rama))
+	if normalizedRama == "" {
+		if strings.TrimSpace(contenedorSerie) != "" {
+			normalizedRama = "internacional"
+		} else if strings.TrimSpace(codigoISO) != "" || strings.TrimSpace(transportista) != "" {
+			normalizedRama = "nacional"
+		}
+	}
+
 	switch normalizedRama {
 	case "internacional":
 		serie := strings.TrimSpace(contenedorSerie)
 		if serie == "" {
-			return "", "", errors.New("contenedor_serie is required for internacional")
+			return "", "", "", errors.New("contenedor_serie is required for internacional")
 		}
-		return serie, "", nil
+		return "internacional", serie, "", nil
 	case "nacional":
 		iso := strings.TrimSpace(codigoISO)
 		trans := strings.TrimSpace(transportista)
 		if iso == "" || trans == "" {
-			return "", "", errors.New("codigo_iso and transportista are required for nacional")
+			return "", "", "", errors.New("codigo_iso and transportista are required for nacional")
 		}
-		return fmt.Sprintf("1 X %s", iso), trans, nil
+		return "nacional", fmt.Sprintf("1 X %s", iso), trans, nil
 	default:
-		return "", "", errors.New("rama must be internacional or nacional")
+		return "", "", "", errors.New("rama could not be inferred; provide contenedor_serie or codigo_iso+transportista")
 	}
 }
 

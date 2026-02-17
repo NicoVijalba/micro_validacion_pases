@@ -119,8 +119,6 @@ components:
         - viaje
         - cliente
         - booking
-        - rama
-        - fecha_real
         - puerto_descargue
       properties:
         nave:
@@ -138,10 +136,15 @@ components:
         rama:
           type: string
           enum: [internacional, nacional]
+          description: Optional. If omitted, backend infers it from contenedor_serie or codigo_iso+transportista
         contenedor_serie:
           type: string
           maxLength: 100
           description: Required when rama=internacional
+        contenedor:
+          type: string
+          maxLength: 100
+          description: Alias accepted for contenedor_serie when rama=internacional
         codigo_iso:
           type: string
           maxLength: 20
@@ -149,6 +152,11 @@ components:
         fecha_real:
           type: string
           example: '2026-02-09'
+          description: Required unless libre_retencion_hasta is provided
+        libre_retencion_hasta:
+          type: string
+          example: '2026-02-12'
+          description: Optional input alias; if fecha_real is omitted, fecha_real is inferred as libre_retencion_hasta - dias_libre
         dias_libre:
           type: integer
           minimum: 0
@@ -161,6 +169,17 @@ components:
         puerto_descargue:
           type: string
           maxLength: 150
+        emision:
+          type: string
+          description: Accepted and ignored; emision is always computed by backend
+        titulo_terminal:
+          type: string
+          maxLength: 200
+          description: Accepted and ignored; titulo_terminal is computed by backend
+        usuario_firma:
+          type: string
+          maxLength: 200
+          description: Accepted and ignored; usuario_firma comes from JWT subject
     CreateRecordResponse:
       type: object
       required: [id, emision, contenedor, libre_retencion_hasta, titulo_terminal, usuario_firma]
