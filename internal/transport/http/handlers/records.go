@@ -49,6 +49,29 @@ type createRecordResponse struct {
 	UsuarioFirma        string `json:"usuario_firma"`
 }
 
+type validateRecordResponse struct {
+	Valid  bool             `json:"valid"`
+	Record recordPayloadDTO `json:"record"`
+}
+
+type recordPayloadDTO struct {
+	ID                  int64  `json:"id"`
+	Emision             string `json:"emision"`
+	Nave                string `json:"nave"`
+	Viaje               string `json:"viaje"`
+	Cliente             string `json:"cliente"`
+	Booking             string `json:"booking"`
+	Rama                string `json:"rama"`
+	Contenedor          string `json:"contenedor"`
+	PuertoDescargue     string `json:"puerto_descargue"`
+	LibreRetencionHasta string `json:"libre_retencion_hasta"`
+	DiasLibre           int    `json:"dias_libre"`
+	Transportista       string `json:"transportista"`
+	TituloTerminal      string `json:"titulo_terminal"`
+	UsuarioFirma        string `json:"usuario_firma"`
+	CreatedAt           string `json:"created_at"`
+}
+
 func NewRecordHandler(service *usecase.RecordService) *RecordHandler {
 	return &RecordHandler{service: service, validate: validator.New()}
 }
@@ -146,5 +169,49 @@ func (h *RecordHandler) Create(w http.ResponseWriter, r *http.Request) {
 		LibreRetencionHasta: rec.LibreRetencionHasta.Format("2006-01-02"),
 		TituloTerminal:      rec.TituloTerminal,
 		UsuarioFirma:        rec.UsuarioFirma,
+	})
+}
+
+func (h *RecordHandler) Validate(w http.ResponseWriter, r *http.Request) {
+	token := strings.TrimSpace(r.URL.Query().Get("t"))
+	if token == "" {
+		problem.Write(w, r, problem.BadRequest("query param t is required"))
+		return
+	}
+
+	rec, err := h.service.FindByQRToken(r.Context(), token)
+	if err != nil {
+		switch {
+		case errors.Is(err, usecase.ErrInvalidQRToken), errors.Is(err, usecase.ErrExpiredQRToken):
+			problem.Write(w, r, problem.BadRequest("invalid or expired qr token"))
+		case errors.Is(err, usecase.ErrQRVerifierUnavailable):
+			problem.Write(w, r, problem.ServiceUnavailable("qr verifier not configured"))
+		case errors.Is(err, domain.ErrNotFound):
+			problem.Write(w, r, problem.NotFound("record not found"))
+		default:
+			problem.Write(w, r, problem.Internal("failed to validate record"))
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(validateRecordResponse{
+		Valid: true,
+		Record: recordPayloadDTO{
+			Emision:             rec.Emision.UTC().Format(time.RFC3339),
+			Nave:                rec.Nave,
+			Viaje:               rec.Viaje,
+			Cliente:             rec.Cliente,
+			Booking:             rec.Booking,
+			Rama:                rec.Rama,
+			Contenedor:          rec.Contenedor,
+			PuertoDescargue:     rec.PuertoDescargue,
+			LibreRetencionHasta: rec.LibreRetencionHasta.Format("2006-01-02"),
+			DiasLibre:           rec.DiasLibre,
+			Transportista:       rec.Transportista,
+			TituloTerminal:      rec.TituloTerminal,
+			CreatedAt:           rec.CreatedAt.UTC().Format(time.RFC3339),
+		},
 	})
 }

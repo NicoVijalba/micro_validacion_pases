@@ -11,11 +11,16 @@ import (
 )
 
 type RecordService struct {
-	repo domain.RecordRepository
+	repo       domain.RecordRepository
+	qrVerifier QRTokenVerifier
 }
 
-func NewRecordService(repo domain.RecordRepository) *RecordService {
-	return &RecordService{repo: repo}
+func NewRecordService(repo domain.RecordRepository, qrVerifier ...QRTokenVerifier) *RecordService {
+	var verifier QRTokenVerifier
+	if len(qrVerifier) > 0 {
+		verifier = qrVerifier[0]
+	}
+	return &RecordService{repo: repo, qrVerifier: verifier}
 }
 
 func (s *RecordService) Create(ctx context.Context, in domain.CreateRecordInput) (int64, domain.Record, error) {
@@ -112,4 +117,15 @@ func resolveTituloTerminal(puertoDescargue string) string {
 	default:
 		return "TERMINAL " + strings.TrimSpace(puertoDescargue)
 	}
+}
+
+func (s *RecordService) FindByQRToken(ctx context.Context, token string) (domain.Record, error) {
+	if s.qrVerifier == nil {
+		return domain.Record{}, ErrQRVerifierUnavailable
+	}
+	recordID, err := s.qrVerifier.VerifyAndExtractRecordID(token)
+	if err != nil {
+		return domain.Record{}, err
+	}
+	return s.repo.FindByID(ctx, recordID)
 }

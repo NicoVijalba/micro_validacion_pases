@@ -32,6 +32,9 @@ func Forbidden(detail string) Details {
 func Conflict(detail string) Details {
 	return Details{Type: "about:blank", Title: "Conflict", Status: http.StatusConflict, Detail: detail}
 }
+func NotFound(detail string) Details {
+	return Details{Type: "about:blank", Title: "Not Found", Status: http.StatusNotFound, Detail: detail}
+}
 func Internal(detail string) Details {
 	return Details{Type: "about:blank", Title: "Internal Server Error", Status: http.StatusInternalServerError, Detail: detail}
 }

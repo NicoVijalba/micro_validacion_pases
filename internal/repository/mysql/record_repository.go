@@ -56,3 +56,38 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	}
 	return id, nil
 }
+
+func (r *RecordRepository) FindByID(ctx context.Context, id int64) (domain.Record, error) {
+	const q = `
+SELECT id, emision, nave, viaje, cliente, booking, rama, contenedor, puerto_descargue,
+       libre_retencion_hasta, dias_libre, transportista, titulo_terminal, usuario_firma, created_at
+FROM records
+WHERE id = ?`
+
+	var rec domain.Record
+	err := r.db.QueryRowContext(ctx, q, id).Scan(
+		&rec.ID,
+		&rec.Emision,
+		&rec.Nave,
+		&rec.Viaje,
+		&rec.Cliente,
+		&rec.Booking,
+		&rec.Rama,
+		&rec.Contenedor,
+		&rec.PuertoDescargue,
+		&rec.LibreRetencionHasta,
+		&rec.DiasLibre,
+		&rec.Transportista,
+		&rec.TituloTerminal,
+		&rec.UsuarioFirma,
+		&rec.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.Record{}, domain.ErrNotFound
+		}
+		return domain.Record{}, err
+	}
+
+	return rec, nil
+}

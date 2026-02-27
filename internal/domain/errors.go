@@ -12,4 +12,6 @@ var (
 	ErrInvalidInput = errors.New("invalid input")
 	// ErrConflict indicates the resource state conflicts with the requested operation.
 	ErrConflict = errors.New("conflict")
+	// ErrNotFound indicates the requested resource was not found.
+	ErrNotFound = errors.New("not found")
 )

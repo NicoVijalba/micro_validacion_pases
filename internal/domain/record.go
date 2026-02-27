@@ -43,4 +43,5 @@ type CreateRecordInput struct {
 // RecordRepository defines persistence operations for records.
 type RecordRepository interface {
 	Insert(ctx context.Context, record Record) (int64, error)
+	FindByID(ctx context.Context, id int64) (Record, error)
 }

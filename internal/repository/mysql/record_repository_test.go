@@ -71,3 +71,37 @@ func TestNewRecordRepository(t *testing.T) {
 		t.Fatal("repo nil")
 	}
 }
+
+func TestFindByIDSuccess(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			t.Errorf("failed to close db: %v", cerr)
+		}
+	}()
+
+	repo := NewRecordRepository(db)
+	now := time.Date(2026, 2, 17, 9, 41, 45, 0, time.UTC)
+	lrh := time.Date(2026, 3, 6, 0, 0, 0, 0, time.UTC)
+	rows := sqlmock.NewRows([]string{
+		"id", "emision", "nave", "viaje", "cliente", "booking", "rama", "contenedor", "puerto_descargue",
+		"libre_retencion_hasta", "dias_libre", "transportista", "titulo_terminal", "usuario_firma", "created_at",
+	}).AddRow(
+		int64(10), now, "NYK DENEB", "072E", "CAPITAL PACIFICO, S.A.", "YMLUL160382911", "internacional", "YMLU5374938", "RODMAN",
+		lrh, 17, "", "PANAMA PORTS COMPANY (RODMAN)", "Admin", now,
+	)
+
+	mock.ExpectQuery("SELECT id, emision, nave").WithArgs(int64(10)).WillReturnRows(rows)
+	mock.ExpectClose()
+
+	rec, err := repo.FindByID(context.Background(), 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if rec.ID != 10 {
+		t.Fatalf("expected id 10, got %d", rec.ID)
+	}
+}

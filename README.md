@@ -10,6 +10,7 @@ Microservicio REST en Go (chi) para:
 - `GET /readyz`
 - `POST /v1/token` (sin token)
 - `POST /v1/records` (requiere Bearer token)
+- `GET /v1/records/validate?t=<token-qr>` (publico, sin Bearer token)
 
 ## Flujo de autenticacion
 1. Cliente llama `POST /v1/token` con `username` y `password`.
@@ -23,6 +24,7 @@ Ver `.env.example`.
 - `JWT_HS_SECRET=...`
 - `TOKEN_USERS=user1:pass1,user2:pass2`
 - `JWT_TOKEN_TTL=1h`
+- `QR_TOKEN_SECRET=...` (debe coincidir con `PASE_QR_SECRET` usado por `imprimir.php`)
 
 ## Regla de negocio aplicada en guardado
 - `EMISION`: `time.Now().UTC()`.
@@ -103,6 +105,11 @@ curl -X POST http://localhost:8080/v1/records \
     "titulo_terminal":"PANAMA PORTS COMPANY (RODMAN)",
     "usuario_firma":"Admin"
   }'
+```
+
+## Ejemplo: validar pase por token QR compacto
+```bash
+curl -X GET "http://localhost:8080/v1/records/validate?t=<TOKEN_QR>"
 ```
 
 ## Desarrollo local

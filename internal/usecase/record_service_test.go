@@ -9,12 +9,28 @@ import (
 	"github.com/example/validacion-pases/internal/domain"
 )
 
+type mockVerifier struct {
+	verifyFn func(token string) (int64, error)
+}
+
+func (m mockVerifier) VerifyAndExtractRecordID(token string) (int64, error) {
+	return m.verifyFn(token)
+}
+
 type mockRepo struct {
-	insertFn func(ctx context.Context, r domain.Record) (int64, error)
+	insertFn   func(ctx context.Context, r domain.Record) (int64, error)
+	findByIDFn func(ctx context.Context, id int64) (domain.Record, error)
 }
 
 func (m mockRepo) Insert(ctx context.Context, r domain.Record) (int64, error) {
 	return m.insertFn(ctx, r)
+}
+
+func (m mockRepo) FindByID(ctx context.Context, id int64) (domain.Record, error) {
+	if m.findByIDFn == nil {
+		return domain.Record{}, nil
+	}
+	return m.findByIDFn(ctx, id)
 }
 
 func TestCreateSuccessInternacional(t *testing.T) {
@@ -136,5 +152,30 @@ func TestCreateConflict(t *testing.T) {
 	})
 	if !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("expected ErrConflict, got %v", err)
+	}
+}
+
+func TestFindByQRTokenSuccess(t *testing.T) {
+	svc := NewRecordService(
+		mockRepo{
+			insertFn: func(_ context.Context, _ domain.Record) (int64, error) { return 0, nil },
+			findByIDFn: func(_ context.Context, id int64) (domain.Record, error) {
+				return domain.Record{ID: id, Booking: "BK001"}, nil
+			},
+		},
+		mockVerifier{verifyFn: func(token string) (int64, error) {
+			if token != "abc" {
+				return 0, ErrInvalidQRToken
+			}
+			return 7, nil
+		}},
+	)
+
+	rec, err := svc.FindByQRToken(context.Background(), "abc")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if rec.ID != 7 {
+		t.Fatalf("expected id 7, got %d", rec.ID)
 	}
 }

@@ -31,16 +31,17 @@ type Config struct {
 	DBConnMaxLifetime time.Duration
 	DBConnMaxIdleTime time.Duration
 
-	AuthMode     string
-	JWTAlg       string
-	JWTIssuer    string
-	JWTAudience  string
-	JWTClockSkew time.Duration
-	JWKSURL      string
-	JWTRefresh   time.Duration
-	JWTHSSecret  string
-	JWTTokenTTL  time.Duration
-	TokenUsers   map[string]string
+	AuthMode      string
+	JWTAlg        string
+	JWTIssuer     string
+	JWTAudience   string
+	JWTClockSkew  time.Duration
+	JWKSURL       string
+	JWTRefresh    time.Duration
+	JWTHSSecret   string
+	JWTTokenTTL   time.Duration
+	TokenUsers    map[string]string
+	QRTokenSecret string
 
 	RateLimitRequests int
 	RateLimitWindow   time.Duration
@@ -72,16 +73,17 @@ func Load() (Config, error) {
 		DBConnMaxLifetime: mustDuration("DB_CONN_MAX_LIFETIME", "30m"),
 		DBConnMaxIdleTime: mustDuration("DB_CONN_MAX_IDLE_TIME", "5m"),
 
-		AuthMode:     getEnv("AUTH_MODE", "jwt"),
-		JWTAlg:       strings.ToUpper(getEnv("JWT_ALG", "HS256")),
-		JWTIssuer:    getEnv("JWT_ISSUER", "https://issuer.example.com"),
-		JWTAudience:  getEnv("JWT_AUDIENCE", "validacion-pases"),
-		JWTClockSkew: mustDuration("JWT_CLOCK_SKEW", "30s"),
-		JWKSURL:      getEnv("JWT_JWKS_URL", ""),
-		JWTRefresh:   mustDuration("JWT_REFRESH_INTERVAL", "5m"),
-		JWTHSSecret:  getEnv("JWT_HS_SECRET", ""),
-		JWTTokenTTL:  mustDuration("JWT_TOKEN_TTL", "1h"),
-		TokenUsers:   parseTokenUsers(getEnv("TOKEN_USERS", "apiuser:change-me")),
+		AuthMode:      getEnv("AUTH_MODE", "jwt"),
+		JWTAlg:        strings.ToUpper(getEnv("JWT_ALG", "HS256")),
+		JWTIssuer:     getEnv("JWT_ISSUER", "https://issuer.example.com"),
+		JWTAudience:   getEnv("JWT_AUDIENCE", "validacion-pases"),
+		JWTClockSkew:  mustDuration("JWT_CLOCK_SKEW", "30s"),
+		JWKSURL:       getEnv("JWT_JWKS_URL", ""),
+		JWTRefresh:    mustDuration("JWT_REFRESH_INTERVAL", "5m"),
+		JWTHSSecret:   getEnv("JWT_HS_SECRET", ""),
+		JWTTokenTTL:   mustDuration("JWT_TOKEN_TTL", "1h"),
+		TokenUsers:    parseTokenUsers(getEnv("TOKEN_USERS", "apiuser:change-me")),
+		QRTokenSecret: getEnv("QR_TOKEN_SECRET", getEnv("PASE_QR_SECRET", "")),
 
 		RateLimitRequests: mustInt("RATE_LIMIT_REQUESTS", 100),
 		RateLimitWindow:   mustDuration("RATE_LIMIT_WINDOW", "1m"),

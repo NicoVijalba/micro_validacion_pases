@@ -81,6 +81,35 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/Problem'
+  /v1/records/validate:
+    get:
+      summary: Validate compact QR token and fetch record
+      parameters:
+        - in: query
+          name: t
+          required: true
+          schema:
+            type: string
+          description: Compact token generated in QR (`v1.id.exp.sig`)
+      responses:
+        '200':
+          description: Token valid and record found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidateRecordResponse'
+        '400':
+          description: Invalid request or invalid/expired QR token
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: Record not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
 components:
   securitySchemes:
     bearerAuth:
@@ -199,6 +228,53 @@ components:
           type: string
         usuario_firma:
           type: string
+    Record:
+      type: object
+      required: [id, emision, nave, viaje, cliente, booking, rama, contenedor, puerto_descargue, libre_retencion_hasta, dias_libre, transportista, titulo_terminal, usuario_firma, created_at]
+      properties:
+        id:
+          type: integer
+          format: int64
+        emision:
+          type: string
+          format: date-time
+        nave:
+          type: string
+        viaje:
+          type: string
+        cliente:
+          type: string
+        booking:
+          type: string
+        rama:
+          type: string
+        contenedor:
+          type: string
+        puerto_descargue:
+          type: string
+        libre_retencion_hasta:
+          type: string
+          example: '2026-03-06'
+        dias_libre:
+          type: integer
+        transportista:
+          type: string
+        titulo_terminal:
+          type: string
+        usuario_firma:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    ValidateRecordResponse:
+      type: object
+      required: [valid, record]
+      properties:
+        valid:
+          type: boolean
+          example: true
+        record:
+          $ref: '#/components/schemas/Record'
     Problem:
       type: object
       required: [type, title, status, detail]

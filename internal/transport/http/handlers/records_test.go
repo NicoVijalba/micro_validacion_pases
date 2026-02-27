@@ -3,9 +3,14 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/example/validacion-pases/internal/domain"
 	"github.com/example/validacion-pases/internal/security/auth"
@@ -16,6 +21,25 @@ import (
 type testRepo struct{}
 
 func (testRepo) Insert(_ context.Context, _ domain.Record) (int64, error) { return 123, nil }
+func (testRepo) FindByID(_ context.Context, id int64) (domain.Record, error) {
+	return domain.Record{
+		ID:                  id,
+		Emision:             time.Date(2026, 2, 17, 9, 41, 45, 0, time.UTC),
+		Nave:                "NYK DENEB",
+		Viaje:               "072E",
+		Cliente:             "CAPITAL PACIFICO, S.A.",
+		Booking:             "YMLUL160382911",
+		Rama:                "internacional",
+		Contenedor:          "YMLU5374938",
+		PuertoDescargue:     "RODMAN",
+		LibreRetencionHasta: time.Date(2026, 3, 6, 0, 0, 0, 0, time.UTC),
+		DiasLibre:           17,
+		Transportista:       "",
+		TituloTerminal:      "PANAMA PORTS COMPANY (RODMAN)",
+		UsuarioFirma:        "Admin",
+		CreatedAt:           time.Date(2026, 2, 17, 9, 41, 45, 0, time.UTC),
+	}, nil
+}
 
 func TestCreateRecordHandler(t *testing.T) {
 	h := NewRecordHandler(usecase.NewRecordService(testRepo{}))
@@ -60,4 +84,29 @@ func TestCreateRecordAcceptsLegacyPayloadShape(t *testing.T) {
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 	}
+}
+
+func TestValidateRecordHandler(t *testing.T) {
+	secret := "test-qr-secret"
+	verifier := usecase.NewCompactQRTokenVerifier(secret)
+	h := NewRecordHandler(usecase.NewRecordService(testRepo{}, verifier))
+
+	token := signedCompactToken(123, secret, time.Now().Add(10*time.Minute).Unix())
+	r := httptest.NewRequest(http.MethodGet, "/v1/records/validate?t="+token, nil)
+	r = r.WithContext(middleware.WithClaims(r.Context(), &auth.Claims{Subject: "user-1"}))
+
+	w := httptest.NewRecorder()
+	h.Validate(w, r)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func signedCompactToken(recordID int64, secret string, exp int64) string {
+	body := fmt.Sprintf("v1|%d|%d", recordID, exp)
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(body))
+	sig := mac.Sum(nil)[:16]
+	return fmt.Sprintf("v1.%d.%d.%s", recordID, exp, base64.RawURLEncoding.EncodeToString(sig))
 }

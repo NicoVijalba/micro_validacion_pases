@@ -40,7 +40,8 @@ func New(ctx context.Context, cfg config.Config, db *sql.DB, logger *slog.Logger
 	}
 
 	repo := mysql.NewRecordRepository(db)
-	svc := usecase.NewRecordService(repo)
+	qrVerifier := usecase.NewCompactQRTokenVerifier(cfg.QRTokenSecret)
+	svc := usecase.NewRecordService(repo, qrVerifier)
 	health := handlers.NewHealthHandler(db)
 	records := handlers.NewRecordHandler(svc)
 	tokenHandler := handlers.NewTokenHandler(tokenSvc)
@@ -78,6 +79,7 @@ func New(ctx context.Context, cfg config.Config, db *sql.DB, logger *slog.Logger
 		v1.Use(chimiddleware.AllowContentType("application/json"))
 		v1.Post("/token", tokenHandler.Issue)
 		v1.With(middleware.AuthBearer(validator)).Post("/records", records.Create)
+		v1.Get("/records/validate", records.Validate)
 	})
 
 	wrapped := otelhttp.NewHandler(r, "http.server", otelhttp.WithSpanNameFormatter(func(_ string, req *http.Request) string {
